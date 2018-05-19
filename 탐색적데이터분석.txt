@@ -1,0 +1,200 @@
+#탐색적 데이터 분석  
+
+barplot(ho$Dogs.eaten,names.arg = ho$Year,xlab="Year",ylab="hot dog and buns eaten",main="Nathan`s Hot Dog Eating Contest Result,1980-2010",las=2)
+colors<-rep("blue",dim(ho)[1])  #blue인 백터 설정 
+colors[ho$Country!="United States"]="red" #미국이 아니면 빨간색 
+legend("topleft",legend=c("USA","Others"),fill=c("red","blue")) #레전드 별로 색깔 설정  
+
+ho<-read.csv("http://datasets.flowingdata.com/hot-dog-places.csv")
+b<-as.matrix(ho)
+ni<-colnames(b)
+ni<-substr(ni,4,5)
+ni<-paste("`",ni,sep="")
+barplot(b,names.arg = ni,xlab="Year",ylab="Hot dogs and burns eaten",main="Hot Dog Eating Contest",col=rainbow(3),legend.text = c(1,2,3),args.legend = list(x = "topleft"))
+#선그래프
+po<-read.csv("http://datasets.flowingdata.com/world-population.csv")
+plot(po$Year,po$Population/1e+09,type="l",xlab="Year",ylab="Population",ylim=c(0,7))
+points(po$Year,po$Population/1e+09,pch=20)
+mtext("(단위:인구 10억)",side=2,line=3,at=0,cex=0.8) #plot 가장자리에 문자 쓰기
+#계단식
+po<-read.csv("http://datasets.flowingdata.com/us-postage.csv")
+plot(po$Year,po$Price,type="s")
+points(po$Year,po$Price,pch=21)
+#시계열
+unts<-ts(un$Value,start = c(1948,1),frequency = 12) 
+plot(unts,type="l",ylim=c(0,11),ylab="Unemployment Rate",xlab="Year")
+lines(lowess(unts,f=1/7),col=3,lwd=1.3) #추세선 그리기 
+#계절형 시계열 분해
+ex<-read.table("Export_1988.txt",header=T)
+exts<-ts(ex$Series/1000,start = c(1988,1),frequency = 12)
+le<-log(exts) #크기 줄일려고 로그 변환
+dle<-decompose(le) #추세,계절성,잡음의 분해 
+plot(dle$trend-dle$seasonal) #계절성 빼고 그리기 
+
+#자기상관,교차상관
+library(MASS)
+acf(geyser$waiting)
+ccf(geyser$waiting,geyser$duration)
+#파이차트
+sum<-sum(da$Number)
+da$Number<-da$Number/sum
+name<-paste(name,",",round(da$Number*100,1),"%",sep="")
+par(mar=c(5,4,4,4)) #여백(그래프 위치 조정)
+pie(da$Number,labels=name,col=brewer.pal(10,"RdGy"),main="Area of Interest")
+#2원빈도표
+a<-UCBAdmissions
+tab1<-a[1,,]
+tab2<-a[2,,]
+tab<-tab1+tab2
+par(mar=c(6.5,4,4,6),xpd=T) #범례 밖으로 빼내기 
+tab<-prop.table(tab,2) #열방향으로 비율계산(1일 경우 행방향) 
+barplot(tab,col=grey(c(0.3,0.9)))
+legend(7.5,1.1,legend=rownames(tab),fill=grey(c(0.3,0.9)),yjust=1)
+tabt<-t(tab)
+barplot(tabt,beside = T,col=brewer.pal(6,"Set3"))
+legend(14,0.35,legend=rownames(tabt),fill=brewer.pal(6,"Set3")) #범례 밖으로 빼낼려고 좌표 사용,문자도 사용
+
+tabm<-a[,1,]
+tabf<-a[,2,]
+tabmp<-prop.table(tabm,2)
+tabfp<-prop.table(tabf,2)
+
+barplot(tabmp,main="man",col=1,density = c(0,30),angle = c(45,135))
+barplot(tabfp,main="Woman",col=1,density = c(0,30),angle=c(45,135))
+legend(7.5,0.8,col=1,legend=rownames(tabm),density=c(0,30),angle = c(45,135))
+#모자이크
+mosaicplot(~Dept+Gender,data=a,col=T)
+tabmp<-as.table(tabmp) #테이블로 만들어주기
+tabfp<-as.table(tabfp)
+mosaicplot(~Dept+Admit,data=tabmp,color=T,main="Male")
+mosaicplot(~Dept+Admit,data=tabfp,color=T,main="Female")
+#트리맵 
+map.market(id=po$id,area = po$views,group = po$category,color = po$comments,main="FlowingData Map")
+#누적연속 그래프
+pop=read.csv("us-population-by-age.csv")
+library(ggplot2)
+pop2<-reshape(pop,direction = "long",varying = list(2:6),times=c("Under 5","5 to 19","20 to 44","45 to 64","Over 65")) #자료 처리
+pop2$time<-factor(pop2$time,levels=c("Over 65","45 to 64","20 to 44","5 to 19","Under 5"))
+ggplot(pop2,aes(x=Year,y=Under.5,group=time,fill=time))+geom_area(position="fill")+scale_fill_brewer(palette = "Blues",name="Ages")
+ggplot(pop2,aes(x=Year,y=Under.5,group=time,color=time))+geom_line(size=1.5)+geom_point()+scale_colour_brewer(palette = "RdYlBu",name="Ages") #선그래프 
+
+#연습문제1 
+di<-read.csv("marry.csv")
+di<-di[-17,]
+rownames(di)<-di[,1]
+name<-colnames(di)
+name<-substr(name,2,7)
+name<-gsub("\\.","-",name)
+dit<-t(di)
+barplot(dit,names.arg=rownames(di),legend.text = name,col=rainbow(5),las=2)
+
+im<-read.csv("import.csv")
+imts<-ts(im$import,start = c(1988,1),frequency = 12)
+plot(imts)
+lines(lowess(imts,f=1/8),col=2)
+lim<-log(imts)
+dlim<-decompose(lim)
+plot(dlim$x-dlim$seasonal)
+lines(lowess(dlim$x-dlim$seasonal,f=1/5),col=3)
+plot(dlim$random)
+#2
+sa<-read.csv("sales.csv")
+a<-table(sa$CT1)
+sum<-sum(a)
+aa<-a/sum
+name<-names(a)
+name<-paste(name,",",round(aa*100,1),"%",sep="")
+pie(aa,labels = name)
+tab=xtabs(~CT1,data=sa)
+
+a<-table(sa$Location1,sa$CT1)
+barplot(a,beside=T,legend.text = c("경기","부산","서울"),col=brewer.pal(3,"Set3"),args.legend=list(x="topleft"))
+tab2=xtabs(~CT1+Location1,sa)
+library(RColorBrewer)
+barplot(t(tab2),beside=T,col=brewer.pal(3,"Set3"),legend.text = c("경기","부산","서울"),args.legend=list(x="topleft"))
+
+library(plyr)
+sm<-ddply(sa,~month+Location1,summarise,price=sum(Price))
+library(ggplot2)
+ggplot(sm,aes(x=factor(month),y=price,group=CT1,color=CT1))+geom_line(size=1.5)+geom_point()+scale_colour_brewer(palette="Set1",name="Category1")
+ggplot(sm,aes(x=factor(month),y=price,group=CT1,fill=CT1))+geom_area(position="fill")+scale_fill_brewer(palette="Set1",name="Category1")
+
+gn<-read.csv("GNI2010.csv")
+library(portfolio)
+map.market(id=gn$iso3,group = gn$continent,area = gn$population,color = gn$GNI-mean(gn$GNI),main="GNI",lab=c("id"=TRUE,"group"=TRUE))
+
+
+#버블차트
+aa<-ddply(sa2,~CT2,summarise,ta=sum(Amount),tp=sum(Price),fr=length(Amount),mp=mean(Price),cus=length(unique(ID)))
+symbols(aa$mp,aa$fr,circles = aa$cus,inches = 0.5,bg="skyblue",fg="white")
+text(aa$mp,aa$fr,aa$CT2,cex=0.5)
+
+#히스토그램 
+br<-read.csv("http://datasets.flowingdata.com/birth-rate.csv")
+hist(br$X2008,20) #20은 구간의 갯수
+br$X2008<-na.omit(br$X2008) #na값제거
+hist(br2008,freq = FALSE) #비율로 
+lines(density(br2008,adjust = 0.5),col=2) #선그리기,adjust 스무스 조정 
+
+library(MASS)
+attach(geyser)
+de<-kde2d(waiting,duration,n=100)
+image(de,xlab="waiting",ylab="duration")
+contour(de,xlab="waiting",ylab="duration") #등고선으로 표현
+persp3d(de,back="lines",col="skyblue",xlab="waiting",ylab="duration")#3차원 분포 그래프 
+
+
+#히스토그램 행렬 
+bre<-reshape(br,varying = list(2:50),direction = "long",idvar = "Country",v.names = "birth",timevar = "year",times=colnames(br)[-1])
+library(lattice)
+bre<-bre[bre$birth<132,] #이상치 제거 
+h<-histogram(~birth|year, data=bre,layout=c(10,5))#행 10, 열5개의 히스토그램 행렬 
+update(h,index.cond=list(c(41:50,31:40,21:30,11:20,1:10))) #행렬 순서 정
+
+#히트맵
+ba<-read.csv("http://datasets.flowingdata.com/ppg2008.csv")
+rownames(ba)<-ba[,1]
+ba<-ba[,-1]
+ba<-as.matrix(ba)
+heatmap(ba,scale = "column",Colv = NA)
+
+#체르노프 페이스
+library(aplpack)
+faces(ba)
+
+#별그림
+cr<-read.csv("http://datasets.flowingdata.com/crimeRatesByState-formatted.csv")
+rownames(cr)<-cr[,1]
+cr<-cr[,-1]
+st<-stars(cr,flip.labels = T)
+stars(cr,flip.labels = FALSE,key.loc = c(16.1,1.8),draw.segments=TRUE)
+
+#P4-1번
+sa<-read.csv("sales.csv")
+de<-read.csv("demo.csv")
+mg<-merge(sa,de,by="ID")
+library(plyr)
+a<-ddply(mg,~CT2,summarise,ta=sum(Amount),tp=sum(Price),fr=length(Amount),mp=mean(Price),nc=length(unique(ID)),ma<-mean(Age))
+hist(log(a$ta))
+hist(log(a$tp))
+hist(log(a$fr))
+hist(log(a$mp))
+hist(a$nc)
+library(psych)
+
+pairs.panels(log(a[,-1]))
+
+aa<-a
+rownames(aa)<-aa[,1]
+aa<-aa[,-1]
+aa<-as.matrix(aa)
+heatmap(aa,scale = "column",Colv = NA)
+s1<-stars(aa,flip.labels = F)
+stars(aa,flip.labels = FALSE,key.loc = c(16.1,1.8),draw.segments=TRUE)
+
+
+#P4-2번
+b<-read.csv("baseball_2015.csv")
+bb<-b[,-1]
+library(lattice)
+parallel(bb[,3:15],horizontal.axis=FALSE,col=1)

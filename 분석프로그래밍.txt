@@ -1,0 +1,24 @@
+#분석프로그래밍(R 기초)
+
+rm(list=ls())#all delet
+exam3 <-read.table(file="clipboard", sep="\t", header=T)#클립보드 
+cs<-read.table("dataCustomers.tab", sep="\t", header=T, stringsAsFactors=F)
+demo <-read.csv("userDemoInfo.csv", stringsAsFactors=FALSE) #csv
+tail(subset(cs,gender=="여"&marriage=="기혼"&age>=50&age<=59),6)#행뽑기
+aggregate(cs[3],by=list(gender=cs$gender),mean) #자료요약
+am<-aggregate(tr[8],by=list(ID=tr$custid),sum)#총구매액 합계
+order<-order(am$amount,decreasing = T)#구매액 내림차순
+head(am[order,],10)#구매액 내림차순순서
+
+cs[!duplicated(cs$residence),]$residence #중복값 없애고 벡터 형태로
+unique(cs$residence) #10번 같음
+tr$import_name<-ifelse(tr$import==1, "수입품","국산품") #수입품 국산품 필드 만들기
+table(tr$store, tr$import_name) #자료요약
+tr<-transform(tr,pro=ifelse(import==1,"수입품","국산품")) #transform사용해서 필드추가
+mg <-merge(tr, cs, by="custid") #데이터프레임 합체
+a <-data.frame(GENDER="남", MIN=min(x$amount), MEDIAN=median(x$amount), MAX=max(x$amount)) #데이터프레임 만들기
+mg1$ym <-paste(substr(mg.1$datetime,1,4), substr(mg.1$datetime,6,7), sep="") #날짜 합치기
+cast(mg1,custid~ym,length,value="amount")#고객들의 월별 구매건수 계산
+tr$wd<-weekdays(as.Date(substr(tr$datetime,1,10),"%Y-%m-%d"),abbreviate = T) #날짜를 요일
+tr$wd<-factor(tr$wd, levels=c("월","화","수","목","금","토","일")) #순서대로 요인이 나오게
+cast(tr, store ~ wd, sum, value="amount") #지점별 요일별 판매액

@@ -1,0 +1,392 @@
+###다변량 최종 프로젝트
+library(data.table)
+library(dplyr)
+library(psych)
+
+####데이터 부르기####
+#역별 주소 부르기 add
+add1=fread("서울교통공사 지하철 역별 주소 정보3.csv",header=T,encoding="UTF-8")
+head(add1)
+
+add2=fread("서울교통공사 지하철역 주소 및 전화번호 정보3.csv",header=T,encoding="UTF-8")
+head(add2)
+
+add1=subset(add1,duplicated(add1$역명)==F)
+add2=subset(add2,duplicated(add2$역명)==F)
+add1=subset(add1,add1$역명%in%setdiff(add1$역명,add2$역명))
+
+add=rbind(add2,add1) #1~4호선과 5~8호선으로 나뉜 데이터 합침
+length(unique(add$역명))
+colnames(add)=c("Line","Station","Name")
+rm(add1,add2)
+
+#추정매출 부르기 sales
+sales=fread("서울시 골목상권 프로파일 정보(상권-추정매출)3.csv",header=T,encoding="UTF-8")
+sales[is.na(sales)]=0
+sales=as.data.frame(sales)
+colnames(sales)[1]="Name"
+sales=sales[order(sales$Name),]
+same=intersect(unique(sales$Name),unique(add$Name)) #역이 없는 상권은 제외
+sales=sales[sales$Name%in%same,]
+
+row.names(sales)<-1:76
+pairs.panels(sales[,44:49]) ## 도로에 따른 연령별 매출 건수
+pairs.panels(sales[,21:26])## 도로에 따른 연령별 매출 금액
+pairs.panels(sales[,6:12]) ##도로에 따른 요일별 매출 금액 
+pairs.panels(sales[,29:35]) ##도로에 따른 요일별 매출 건수 
+pairs.panels(sales[,13:18]) ##도로에 따른 시간대별 매출 금액 
+pairs.panels(sales[,36:41]) ## 도로에 따른 시간대별 매출 건수 
+
+boxplot(sales[,c(4,5)]) #주말 주중 매출 금액 비교
+boxplot(sales[,c(27,28)]) #주말 주중 매출 건수 비교
+boxplot(sales[,c(42,43)]) #성별 매출 건수 비교
+boxplot(sales[,c(19,20)]) #성별 매출 금액 비교  
+
+###주성분 분석 
+library(MVA)
+pca1<-prcomp(sales[,2:49],scale. = T)
+summary(pca1)
+plot(pca1,type="l")
+biplot(pca1,xlim=c(-0.6,0.6),cex=0.7)
+
+####요인분석 EFA####
+#sales
+sales.efa=sales
+rownames(sales.efa)=sales.efa$Name
+sales.efa=sales.efa[,-1]
+sales.efa=as.data.frame((scale(sales.efa))) 
+fa.sales=factanal(sales.efa,10)
+print(fa.sales) 
+print(fa.sales,digits = 2,sort=T) 
+
+load=fa.sales$loadings
+plot(load,type = "n")
+text(load,labels=names(sales.efa),cex=0.8)
+
+
+#유동인구 부르기 pop
+pop=fread("서울시 골목상권 프로파일 정보(상권-추정유동인구)3.csv",header=T,encoding="UTF-8")
+pop[is.na(pop)]=0
+pop=as.data.frame(pop)
+pop=pop[order(pop$Name),]
+pop=pop[pop$Name%in%same,] #역이 없는 상권은 제외
+rm(same)
+
+
+#상권 집객시설 부르기 home 집객시설 정의 : 손님을 모을수 있는것들 ex)영화관 백화점 등  
+
+home<-fread("서울시 골목상권 프로파일 정보(상권-집객시설)3.csv",header=T,encoding="UTF-8")
+home[is.na(home)]=0
+home=as.data.frame(home)
+home=home[order(home$Name),]
+home1=home[home$Name%in%same,] #역이 없는 상권 집객시설은제외
+row.names(home1)<-1:76
+str(home1)
+##데이터 탐색
+
+home1$`개수 : 극장_수`<-NULL
+home1$`개수 : 백화점_수`<-NULL
+##요인분석 
+home1.efa=home1
+rownames(home1.efa)=home1.efa$Name
+home1.efa=home1.efa[,-1]
+home1.efa=as.data.frame((scale(home1.efa))) 
+fa.home1=factanal(home1.efa,4) 
+print(fa.home1) 
+print(fa.home1,digits = 2,sort=T) 
+
+load=fa.home1$loadings
+plot(load,type = "n")
+text(load,labels=names(home1.efa),cex=0.8)
+
+library(psy)
+scree.plot(fa.home1$correlation)  
+
+
+
+
+#소득 소비 부르기 buy
+
+buy<-fread("서울시 골목상권 프로파일링 정보(상권-소득소비)3.csv",header=T,encoding="UTF-8")
+buy[is.na(buy)]=0
+buy=as.data.frame(buy)
+buy=buy[order(buy$Name),]
+buy=buy[buy$Name%in%same,] #역이 없는 상권 집객시설은제외
+row.names(buy)<-1:76
+str(buy)
+##데이터 탐색
+
+library(GPArotation)
+##요인분석 
+buy.efa=buy
+rownames(buy.efa)=buy.efa$Name
+buy.efa=buy.efa[,-1]
+buy.efa2<-buy.efa[,-1]
+buy.efa2=as.data.frame((scale(buy.efa2))) 
+
+fa.buy=factanal(buy.efa2,2,rotation = "quartimax")
+print(fa.buy) 
+print(fa.buy,digits = 2,sort=T) 
+
+load=fa.buy$loadings
+plot(load,type = "n")
+text(load,labels=names(buy.efa),cex=0.8)
+
+library(psy)
+scree.plot(fa.buy$correlation)  
+
+
+
+library(data.table)
+library(dplyr)
+library(psych)
+library(psy)
+library(GPArotation)
+
+#### 데이터 부르기 ####
+#역별 주소 부르기 add
+add1=fread("서울교통공사 지하철 역별 주소 정보3.csv",header=T,encoding="UTF-8")
+head(add1)
+
+add2=fread("서울교통공사 지하철역 주소 및 전화번호 정보3.csv",header=T,encoding="UTF-8")
+head(add2)
+
+add1=subset(add1,duplicated(add1$역명)==F)
+add2=subset(add2,duplicated(add2$역명)==F)
+add1=subset(add1,add1$역명%in%setdiff(add1$역명,add2$역명))
+
+add=rbind(add2,add1) #1~4호선과 5~8호선으로 나뉜 데이터 합침
+length(unique(add$역명))
+colnames(add)=c("Line","Station","Name")
+rm(add1,add2)
+
+#추정매출 부르기 sales
+sales=fread("서울시 골목상권 프로파일 정보(상권-추정매출)3.csv",header=T,encoding="UTF-8")
+sales[is.na(sales)]=0
+sales=as.data.frame(sales)
+colnames(sales)[1]="Name"
+sales=sales[order(sales$Name),]
+same=intersect(unique(sales$Name),unique(add$Name))
+sales=sales[sales$Name%in%same,] #역이 없는 상권은 제외
+rm(same)
+
+#유동인구 부르기 pop
+pop=fread("서울시 골목상권 프로파일 정보(상권-추정유동인구)3.csv",header=T,encoding="UTF-8")
+pop[is.na(pop)]=0
+pop=as.data.frame(pop)
+pop=pop[order(pop$Name),]
+same=intersect(unique(pop$Name),unique(add$Name))
+pop=pop[pop$Name%in%same,] #역이 없는 상권은 제외
+rm(same)
+
+#집객시설 home
+home<-fread("서울시 골목상권 프로파일 정보(상권-집객시설)3.csv",header=T,encoding="UTF-8")
+home[is.na(home)]=0
+home=as.data.frame(home)
+home=home[order(home$Name),]
+same=intersect(unique(pop$Name),unique(add$Name))
+home=home[home$Name%in%same,] #역이 없는 상권은제외
+row.names(home)<-1:76
+rm(same)
+
+#소득소비 cons
+cons=fread("서울시 골목상권 프로파일링 정보(상권-소득소비)3.csv",header=T,encoding="UTF-8")
+cons[is.na(cons)]=0
+cons=as.data.frame(cons)
+cons=cons[order(cons$Name),]
+same=intersect(unique(pop$Name),unique(add$Name))
+cons=cons[cons$Name%in%same,] #역이 없는 상권은 제외
+rm(same)
+head(cons)
+
+#승하차 정보 부르기 io
+io=fread("서울시 지하철 호선별 역별 시간대별 승하차 인원 정보.csv",header=T,encoding="UTF-8")
+names=colnames(io) #너무 긴 필드 명 수정
+names=gsub('시','h',names) 
+names=gsub('승차인원','In',names)
+names=gsub('하차인원','Out',names)
+names[1:3]=c("Date","Line","Station")
+colnames(io)=names;rm(names)
+io=io[,-52]
+
+#### 데이터 탐색 ####
+#데이터 탐색 pop
+pairs.panels(pop[2:7]) #연령별 상관관계
+pairs.panels(pop[14:20]) #요일별 상관관계
+
+#데이터 탐색 sales
+pairs.panels(sales[,44:49]) ## 도로에 따른 연령별 매출 건수
+pairs.panels(sales[,21:26])## 도로에 따른 연령별 매출 금액
+pairs.panels(sales[,6:12]) ##도로에 따른 요일별 매출 금액
+pairs.panels(sales[,29:35]) ##도로에 따른 요일별 매출 건수
+pairs.panels(sales[,13:18]) ##도로에 따른 시간대별 매출 금액
+pairs.panels(sales[,36:41]) ## 도로에 따른 시간대별 매출 건수
+boxplot(sales[,c(4,5)]) #주말 주중 매출 금액 비교
+boxplot(sales[,c(27,28)]) #주말 주중 매출 건수 비교
+boxplot(sales[,c(42,43)]) #성별 매출 건수 비교
+boxplot(sales[,c(19,20)]) #성별 매출 금액 비교 
+
+#데이터 탐색 home
+home$`개수 : 극장_수`<-NULL
+home$`개수 : 백화점_수`<-NULL
+
+#### EFA ####
+#home 
+home1.efa=home
+rownames(home1.efa)=home1.efa$Name
+home1.efa=home1.efa[,-1]
+home1.efa=as.data.frame((scale(home1.efa))) 
+fa.home1=factanal(home1.efa,4) 
+print(fa.home1) 
+print(fa.home1,digits = 2,sort=T) #p값이 작으므로 귀무가설을 기각하지 못한다. 따라서 factor가 설명력이 부족하다.
+
+load=fa.home1$loadings
+plot(load,type = "n")
+text(load,labels=names(home1.efa),cex=0.8)
+
+scree.plot(fa.home1$correlation)
+
+rm(home1.efa,fa.home1,load)
+
+#cons
+cons.efa=cons
+rownames(cons.efa)=cons.efa$Name
+cons.efa=cons.efa[,-1]
+cons.efa2<-cons.efa[,-1]
+cons.efa2=as.data.frame((scale(cons.efa2))) 
+
+fa.cons=factanal(cons.efa2,2,rotation = "quartimax")
+print(fa.cons) 
+print(fa.cons,digits = 2,sort=T) #p값이 작으므로 귀무가설을 기각하지 못한다. 따라서 factor가 설명력이 부족하다.
+
+load=fa.cons$loadings
+plot(load,type = "n")
+text(load,labels=names(cons.efa),cex=0.8)
+
+scree.plot(fa.cons$correlation)  
+
+rm(fa.cons,cons.efa,cons.efa2,load)
+
+#### PCA ####
+#sales
+sales1=sales
+rownames(sales1)=sales1$Name
+sales1=sales1[,-1]
+pca.sales=prcomp(sales1,scale=T)
+
+summary(pca.sales)
+plot(pca.sales,type='l') #2개 선택 
+
+biplot(pca.sales, xlim=c(-0.6,0.6),cex=0.7) #연령대 20 매출금액, 시간대 06-11 매출금액
+
+par(mfrow=c(4,5))
+for(i in 1:20){
+  plot(pca.sales$x[,i])
+}
+
+par(mfrow=c(1,1))
+result<-pca.sales$x[,1:2]
+result<-as.data.frame(result)
+qqnorm(result$PC1)
+qqline(result$PC1)
+
+sales1=sales[c(1,14,22)] #주성분만 사용한 데이터
+
+rm(pca.sales)
+
+#pop
+pop1=pop
+rownames(pop1)=pop1$Name
+pop1=pop1[,-1]
+pca.pop=prcomp(pop1,scale=T)
+
+summary(pca.pop)
+plot(pca.pop,type='l') #2개 선택
+
+biplot(pca.pop, xlim=c(-0.6,0.6),cex=0.7) #연령대 20 유동인구수, 일요일 유동인구 수
+
+par(mfrow=c(4,5))
+for(i in 1:20){
+  plot(pca.pop$x[,i])
+};rm(i)
+par(mfrow=c(1,1))
+result<-pca.pop$x[,1:2]
+result<-as.data.frame(result)
+qqnorm(result$PC1)
+qqline(result$PC1)
+
+pop1=pop[c(1,3,20)] #주성분만 사용한 데이터
+
+rm(pca.pop,result)
+
+#cons
+cons1=cons
+rownames(cons1)=cons1$Name
+cons1=cons1[,-1]
+pca.cons=prcomp(cons1,scale=T)
+
+summary(pca.cons)
+plot(pca.cons,type='l') #1개 선택
+
+biplot(pca.cons, xlim=c(-0.6,0.6),cex=0.7)
+
+result<-pca.cons$x[,1:2]
+result<-as.data.frame(result)
+qqnorm(result$PC1)
+qqline(result$PC1)
+
+cons1=cons[c(1,2)]
+rm(result,pca.cons)
+
+#home
+home1=home
+rownames(home1)=home1$Name
+home1=home1[,-1]
+pca.home=prcomp(home1,scale=T)
+
+summary(pca.home)
+plot(pca.home,type='l') #4개 선택
+
+biplot(pca.home,cex=0.7)
+
+result<-pca.home$x[,1:4]
+result<-as.data.frame(result)
+qqnorm(result$PC1)
+qqline(result$PC1)
+
+home1=home[c(1,2,5,8,10)]
+rm(result,pca.home)
+
+
+#### 군집분석 ####
+ro=left_join(cons1,home1)%>%
+  left_join(pop1)%>%left_join(sales1)
+
+#kmeans
+km=kmeans(ro[,-1],4,nstart = 1)
+ess=c()
+for(k in 1:10){
+  km=kmeans(ro[,-1],k,nstart = 10)
+  ess[k]=km$tot.withinss
+}
+plot(ess,type = 'l')
+points(ess)
+
+km=kmeans(ro[-1],centers = 3)
+plot(ro$`평균 : 지출_총금액`,ro$`평균 : 연령대_20_유동인구_수`,pch=km$cluster,col=km$cluster)
+text(ro$`평균 : 지출_총금액`,ro$`평균 : 연령대_20_유동인구_수`,labels=ro$Name,cex=0.8,adj=0,pos=4,col=km$cluster)
+points(km$centers[,c(1,3)],col=1:3,pch=4,cex=2)
+
+
+
+#### 승하차 데이터 전처리 ####
+str(io)
+io=as.data.frame(io)
+for(i in 4:51){
+  io[,i]=as.integer(io[,i]) #문자열을 숫자로 바꿔줌
+};rm(i)
+
+same=intersect(unique(sales$Name),unique(add$Name))
+add1=add[add$Name%in%same] #골목상권을 기반으로 국민대역이 어떤 역이 될 지 예측하는 것이기 떄문에 골목상권이 없는 역은 제외한다.
+length(unique(add1$Name)) 
+rm(same)

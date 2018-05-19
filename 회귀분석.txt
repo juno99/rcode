@@ -1,0 +1,387 @@
+#회귀분석과제
+
+library(devtools)
+library(regbook)
+a<-usedcars
+par(mfrow=c(2,2))
+y<-resid(lm(price~mileage+cc+automatic,a))
+x1<-resid(lm(year~mileage+cc+automatic,a))
+plot(y~x1,main="year")
+abline(lm(y~x1))
+grid()
+
+y2<-resid(lm(price~year+cc+automatic,a))
+x2<-resid(lm(mileage~year+cc+automatic,a))
+plot(y2~x2,main="mileage")
+abline(lm(y2~x2))
+grid()
+
+y3<-resid(lm(price~year+mileage+automatic,a))
+x3<-resid(lm(cc~year+mileage+automatic,a))
+plot(y3~x3,main="cc")
+abline(lm(y3~x3))
+grid()
+
+y4<-resid(lm(price~year+mileage+cc,a))
+x4<-resid(lm(automatic~year+mileage+cc,a))
+plot(y4~x4,main="automatic")
+abline(lm(y4~x4))
+grid()
+
+#회귀 연습문제 5.9
+
+library(regbook)
+a<-houseprice
+fit<-lm(price~.,a)
+plot(fit,which=4)#쿡의거리
+cooks.distance(fit)
+cooks.distance(fit)[cooks.distance(fit)>3.67/(27-5)] # 8,9,10,27이 계수 추청량에 영향을 준다.
+
+plot(fit,which=5) # 내표준화 잔차대 지렛값 그림 
+hatvalues(fit)
+hatvalues(fit)[hatvalues(fit)>2*5/27] #9,27이 높은 지렛점일 가능성을 보이고 있다.
+
+dffits(fit)    #dffits
+plot(dffits(fit),ylab = 'DFFITS')
+grid()
+abline(h=2*sqrt(5/27),lty=3,col=2)
+abline(h=-2*sqrt(5/27),lty=3,col=2)
+identify(dffits(fit))
+
+par(mfrow=c(2,2))   #dfbetas
+par(mfrow=c(2,2))
+dfbetas(fit)
+d<-dfbetas(fit)
+plot(d[,2],ylab="tax")
+grid()
+abline(h=2/sqrt(27),col=2,lty=3)
+abline(h=-2/sqrt(27),col=2,lty=3)
+identify(d[,2])
+
+plot(d[,3],ylab="ground")
+grid()
+abline(h=2/sqrt(27),col=2,lty=3)
+abline(h=-2/sqrt(27),col=2,lty=3)
+identify(d[,3])
+
+plot(d[,4],ylab="floor")
+grid()
+abline(h=2/sqrt(27),col=2,lty=3)
+abline(h=-2/sqrt(27),col=2,lty=3)
+identify(d[,4])
+
+plot(d[,5],ylab="year")
+grid()
+abline(h=2/sqrt(27),col=2,lty=3)
+abline(h=-2/sqrt(27),col=2,lty=3)
+identify(d[,5])
+
+#회귀 시험대비
+
+pnorm(0)#표준정규 분포에서 누적분포함수값
+pnorm(1.96)-pnorm(-1.96)#구간 값 
+qnorm(0.95) #상위 0.05값
+qnorm(0.05,lower.tail = FALSE)
+dnorm(0) #확률밀도(질량)함수의 값
+pnorm(-5/6)
+
+library('regbook')
+h<-hweight
+m<-subset(h,gender=='M')
+head(m)
+hist(m$height)
+hist(m$height,probability = TRUE)#세로축 비율 
+lines(density(m$height)) #확률밀도함수 추가로 그리기
+histf(m$height)#히스토그램 위에 정규분포의 pdf와 평활곡선 그려준다 
+summary(m)
+summary(m$height)#기본적인 측도계산(평균,사분위수,최대 최소)
+range(m$height)#최대 최소값
+quantile(m$height) #범위
+quantile(m$height,probs = c(0,1)) #특정 분위수 
+IQR(m$height)#사분위수 범위
+boxplot(height~gender,h,horizontal=TRUE)#boxplot horizon은 눕혀서 그려라
+
+#평균키 95%에 대한 신뢰구간
+y<-m$height
+n<-length(y)
+mean(y)+qt(c(0.025,0.975),n-1)*sd(y)/sqrt(n)
+
+t.test(m$height,mu=173,alternative = "two.sided") #양측검정
+#정규성 검증 점들이 일직선에 있으면 정규성을 만족
+qqnorm(m$height)
+qqline(m$height)
+#표본 상관계수
+with(m,cor(height,weight))
+cor(m$height,m$weight)
+#상관계수 가설검정
+cor.test(m$weight,m$height)
+
+#2장 회귀분석
+
+a<-aflength
+head(a)
+plot(a$forearm,a$foot)
+plot(foot~forearm,a)
+#예제2.2
+x<-a$forearm
+y<-a$foot
+beta1<-cov(x,y)/cov(x,x)
+beta<-mean(y)-beta1*mean(x)
+lm(y~x,a)#lm 회귀분석에 필요한 거의 모든 통계값 계산(회귀계수)
+fitted(lm(y~x,a))#적합값
+resid(lm(y~x,a)) #잔차
+plot(y~x,a)
+abline(lm(y~x,a)) #추정된 회귀식 그리기
+#예제2.3
+summary(lm(y~x,a)) #잔차,회귀계수
+
+#예제2.5
+anova(lm(y~x,a))#분산 분석(반응변수,설명변수),귀무가석 베타원은 0 ,sst,ssr에대한정보  
+summary(lm(y~x,a))# 결정계수,잔차표준오차, f검정 결과 
+sum(rpredict(lm(y~x,a))^2) #press(예측잔차제곱함)
+
+#예제2.6
+summary(lm(y~x,a)) #점추정값,표준오차,t검정,p
+confint(lm(y~x,a)) #95%신뢰구간 
+#예제2.7(#각 관측값에 대한 신뢰구간 예측구간)
+predict(lm(y~x,a),se.fit = TRUE,interval = 'confidence') #se=평균에 대한 표준오차,confidence = y의 평균에대한 신뢰구간
+predict(lm(y~x,a),interval = 'prediction')#prediction y의 새로운값에 대한 예측구간
+fitplot(lm(y~x,a)) #신뢰대,예측대
+
+#예제2.8
+par(mfrow=c(1,1))
+plot(lm(y~x,a))
+histf(rstandard(lm(y~x,a),boxplot=TRUE)) #표준화잔차 히스토그램과 상자그림 
+#예제2.9
+q<-quadratic
+plot(y~x,q)
+abline(lm(y~x,q))
+with(q,lines(lowess(x,y),lty=2))
+lm(y~x+I(x^2),q)#모형 수정
+summary(lm(y~x+I(x^2),q))
+
+#예제2.10
+lmc=lm(y~-1+x,a)
+summary(lmc)
+confint(lmc)
+anova(lmc)
+
+#3장
+u<-usedcars
+pairs(usedcars)
+c<-lm(price~.,u)
+summary(c)
+fitted(c)#예측값
+resid(c) #잔차
+
+#예제3.3(분산분석 귀무가설 =(베타원부터 p-1,회귀계수 다 0))
+anova(c)#residuals잔차,나머지 ssr
+summary(c)
+sum((rpredict(c)^2))#예측 잔차제곱합(press)
+
+#예제3.4
+summary(c)#회귀계수가 0이라는 가설에 대한 t검정을 하여라
+confint(c)
+cc.lm<-lm(price~year+mileage+automatic,u)
+summary(cc.lm)
+
+#예제3.7
+predict(c,interval = 'confidence')
+predict(c,interval = 'prediction')
+nw<-data.frame(year=60,mileage=100000,cc=2000,automatic=1) #새로운값 데이터프레임으로
+nw
+predict(c, newdata=nw, interval="confidence")#평균 신뢰구간
+predict(c, newdata=nw, interval="prediction")# 예측값에 대한 예측 구간
+predict(c, newdata=nw, interval="confidence", se.fit=TRUE) #평균 추정값에 대한  표준오차 
+#예제 3.8
+par(mfrow=c(2,2))
+plot(c) #상단 왼쪽 
+res<-rstandard(c)
+plot(res~year,u) #표준화 잔차대 설병변수들의 산점도 
+abline(h=0,lty=3)
+plot(price~fitted(c),u) #관측값대 예측값 산점도
+abline(0,1,lty=3)
+library(lattice)
+rfs(c) #rf그림 
+summary(c)
+
+#예제4.2
+anova(c) #추가제곱합
+drop1(c, test="F")  # rss편제곱합의 크기, 293332-255538 ,편제곱합의 크기(설명변수의 중요도) 
+#440번가설 p값>0.05보다 크면 귀무가설 베타는=0 기각x
+##예제 4.3
+mod0 <- lm(price ~ year + mileage + automatic, usedcars) #model 2개만들어서 f검정 가능 
+mod1 <- lm(price ~ year + mileage + cc + automatic, usedcars) 
+anova(mod0, mod1)
+mod0 <- lm(price ~ year + mileage, usedcars) #귀무가설 모형
+mod1 <- lm(price ~ year + mileage + cc + automatic, usedcars) #대립가설 모형  
+anova(mod0, mod1)                
+
+fit<-lm(price~year,usedcars)
+summary(fit)
+#예제4.5(편회귀 그림)
+fit <- lm(price ~ year+mileage,usedcars)
+coef(summary(fit))# 편회귀 계수만 출ㄹ
+y.x1 <- resid(lm(price ~ year, usedcars))
+x2.x1 <- resid(lm(mileage ~ year, usedcars))
+plot(y.x1 ~ x2.x1)
+abline(lm(y.x1 ~ x2.x1))
+grid()
+coef(lm(y.x1 ~ x2.x1))
+y.x2<-resid(lm(price~mileage,u))
+x1.x2<-resid(lm(year~mileage,u))
+plot(x1.x2,y.x2)
+grid()
+abline(lm(y.x2~x1.x2))
+#편회귀 그림에서 점들이 회귀 직선에 가까이 있으면 모형의 적합도가 높다
+y.x1<-resid(lm(price~mileage+cc+automatic,u))
+k.x1<-resid(lm(year~mileage+cc+automatic,u))
+plot(k.x1,y.x1)
+abline(lm(y.x1~k.x1))
+#적합 회귀식 과 lowess평활곡선 그리기 
+quadratic
+plot(y ~ x, quadratic)
+quadratic.lm1 <- lm(y ~ x, quadratic)
+abline(quadratic.lm1)
+with(quadratic, lines(lowess(x,y), lty=2))
+#예제 4.7
+expdata1
+e<-lm(y~x1,expdata1)
+anova(e)
+et<-lm(y~factor(x1),expdata1) #순오차제곱 
+anova(et)
+anova(e,et) #오차제곱합은 순오차제곱합과 적합결여제곱합 
+
+e1<-lm(y~x1+x2,expdata1)
+e2<-lm(y~factor(x1)+factor(x2),expdata1)
+anova(e1,e2)
+
+bug
+par(mfrow=c(1,2))
+plot(y ~ time, bug)
+bug <- within(bug, logy <- log(y))
+fit <- lm(logy ~ time, bug)
+plot(logy ~ time, bug)
+abline(fit)
+summary(fit)
+#예제4.9(분산 안정화변환 )
+r<-restaurant
+plot(Y ~ X, restaurant)
+a <-lm(Y ~ X, restaurant)
+abline(a) 
+
+par(mfrow=c(2,2))
+plot(a)
+
+meanvar(Y ~ X, restaurant) # 평균과 분산 계산 구해준
+ym<-meanvar(Y ~ X, restaurant)
+plot(ym,sd~mean+I(mean^2))
+b<-lm(1/Y~X+I(X^2),r)
+summary(b)
+c<-lm(1/Y~X+I(X^2)+I(X^3),r) #결정계수가 더높다 계속 이런식으로 하나씩 추가해준다 
+summary(c)
+#box-cox변환 
+wool
+boxcox(lm(cycle~length+amplitude+load,wool)) #로그변환 필요
+qqnorm(wool$cycle)
+qqline(wool$cycle)
+b<-within(wool,logy<-log(wool$cycle))
+qqnorm(b$logy)
+qqline(b$logy)
+al<-lm(logy~length+amplitude+load,b)
+summary(al)
+par(mfrow=c(2,2))
+plot(al)
+#예제4.12(표준화 회귀계수)
+a<-houseprice
+la<-lm(price~.,a)
+summary(la)
+stdcoef(la) #표준화 회귀계수
+summary(lmbeta(la)) #표준화 회귀계수뿐만 아니라 회귀분석도
+
+#예제4.14
+a<-hald
+a
+fit<-lm(y~.,a)
+summary(fit)
+r<-cor(a[2:5]) #다중공선성 유무판단하기위해서 설명변수들의 상관계수
+r
+summary(vif(fit)) #vif 분산팽창인수(10보다크면 다중공선성) ei 고유값(0에 가까우면 하나의 선형종속관계 존재 ),cond조건지수(클수록 다중공선성)
+
+z<-lm(y~+x1+x3+x4,a)
+summary(z)
+summary(vif(z))
+
+#5장(지렛점,특이점)
+#예제5.1
+a<-usedcars
+fit<-lm(price~.,a)
+resid(fit)
+rstandard(fit)#내표준화잔차(+-2넘으면 특이점)
+rstudent(fit)  ('')
+length(a)
+n<-length(resid(fit)) 
+hatvalues(fit) #지렛값(2p/n보다 크면 특이점,p는 회귀계수 갯수 )
+
+influence.measures(fit) #모든 측도다 
+cooks.distance(fit)#3.67/(n-p)
+covratio(fit) # |coverat-1|>=3p/n
+dfbetas(fit) #2/루트n
+diffits(fit) #2*루트 p/n
+
+#예제5.4(독립성 판정)
+install.packages("lmtest") 
+library(lmtest)   
+steel
+fit<-lm( steelprice~machineprice,steel)
+summary(fit)
+plot(fit)
+plot(steelprice~machineprice,steel)
+abline(fit)
+lag.plot(resid(fit),do.lines = FALSE) #시차그림(독립이면 랜덤,그렇치않으면 선형관계)
+dwtest(fit) #더비 왓슨-독립성 판정
+e<-resid(fit)
+ar(e,aic = FALSE,order.max = 1) #일차 자기상관계수
+
+#6장(상관계수,산점도,회귀분석,잔차,특이점, 자기상관관계)
+h<-houseprice
+cor(h)
+cor.test(h$price,h$tax)
+pairs(h)
+plot(h$price~h$year,h)
+plot(h$price~h$tax,h)
+fit<-lm(price~.,h)
+summary(fit)
+resid(fit)
+rstandard(fit)
+rstudent(fit)
+hatvalues(fit) 
+par(mfrow=c(2,2))
+plot(fit)
+lag.plot(resid(fit),do.lines = FALSE)
+library(lmtest)
+dwtest(fit)
+library(leaps)
+h.rgs<-regsubsets(price~.,h,nbest = 6) #가능한 모형 6개까지
+summaryf(h.rgs) #잔차제곱합, 결정계수,조정결정계수(큰값이 최적),멜로우즈(최소가 적합),bic(최소가 최적) 
+
+press(fit) #예측도
+press(h.rgs) #press최소가 최적모형 
+
+model0<-lm(price~1,h)
+add1(model0,scope=~tax+ground+floor+year,test='F')#('F가 큰게 모형에 포함)
+mo<-lm(price~floor,h) #f값 가장 큰 변수 추가
+add1(mo,scope=~tax+ground+floor+year,test='F')
+mo2 <- update(mo, . ~ . +tax)
+mo2
+drop1(mo2, test="F")
+add1(mo2, scope= ~tax+ground+floor+year, test="F")
+step(model0,scope=~tax+ground+floor+year,direction = "both") #add1,drop1한번에 해준
+step(model0,scope=~tax+ground+floor+year,direction = "forward")
+#모형 확인 
+fit1<-lm(price~tax+floor,h)
+summary(fit1)
+rstandard(fit1)
+rstudent(fit1)
+press(fit1)
+rpredict(fit1)

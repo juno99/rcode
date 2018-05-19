@@ -1,0 +1,809 @@
+#다변량 통계분석 
+
+ad<-read.csv("Advertising.csv")
+ad<-ad[,-1]
+library(psych)
+pairs.panels(ad)
+fit<-lm(Sales~TV,ad)
+summary(fit)
+residuals(fit) #잔차
+confint(fit)
+confint(fit,level = 0.99)
+fit.c<-lm(dist~speed,cars) #자동차 자료
+summary(fit.c)  
+plot(cars$speed,cars$dist)
+fit.c<-lm(dist~0+speed,cars)#원점을 지나는 회귀선
+
+
+plot(Sales~TV,ad)
+abline(fit,col=2,lwd=2)
+
+#부분f검정 
+fit2<-lm(Sales~.,ad)
+summary(fit2)
+fit3<-lm(Sales~TV+Radio,ad)
+anova(fit3,fit2)
+
+#전진,후진,혼합 
+step(lm(Sales~1,ad),scope = ~TV+Radio+Newspaper,direction = "forward")
+step(lm(Sales~.,ad),direction = "backward")
+step(lm(Sales~1,ad),scope = ~TV+Radio+Newspaper,direction = "both")
+
+
+install.packages("leaps")
+library(leaps)
+sub<-regsubsets(Sales~.,ad) #nbest=설명변수 3개를 고르겠다
+plot(sub,scale="bic")
+
+fit4<-lm(Sales~TV+Radio,ad)
+predict(fit4,data.frame(TV=c(100,130,150),Radio=c(20,10,5)),interval="prediction")
+
+#질적변수 코딩 
+install.packages("ISLR")
+library("ISLR")
+cr<-read.csv("Credit.csv")
+head(cr)
+cr<-cr[,-1]
+library(psych)
+pairs.panels(cr)
+
+boxplot(Balance~Gender,cr)
+boxplot(Balance~Student,cr)
+boxplot(Balance~Ethnicity,cr)
+
+fit<-lm(Balance~Gender,cr)
+summary(fit)
+str(cr)
+cr$Gender<-relevel(cr$Gender,ref="Female")#레퍼런스 바꿔주기  
+
+
+fit1<-lm(Balance~Gender,cr,contrasts = list(Gender=contr.sum))
+summary(fit1)
+head(model.matrix(fit1))
+head(cr)
+
+fit2<-lm(Balance~Ethnicity,cr)
+fit3<-lm(Balance~Ethnicity,cr,contrasts = list(Ethnicity=contr.sum))
+summary(fit3)
+head(cr$Ethnicity,10)
+head(model.matrix(fit3),10)
+
+cr$Ethnicity<-relevel(cr$Ethnicity,ref="Asian")
+str(cr)
+fit5<-lm(Sales~TV+Radio+TV*Radio,ad)
+summary(fit5)
+
+fit6<-lm(Balance~Income+Student+Income*Student,cr)
+summary(fit6)
+
+
+a<-read.csv("Auto.csv")
+plot(mpg~horsepower,a)
+head(a)
+plot(lm(mpg~horsepower,a))
+b<-lm(mpg~horsepower,a)
+fit7<-lm(mpg~horsepower+I(horsepower^2),a)
+summary(fit7)
+plot(fit7)
+
+plot(fit7$model$horsepower,residuals(fit7))
+
+
+head(a)
+model3<-lm(mpg~.-name,a)
+library(car)
+vif(model3)
+
+head(cr)
+plot(Rating~Limit,cr,main="collinearity")
+fit8<-lm(Balance~Age+Rating+Limit,cr)
+vif(fit8)
+
+
+#연습문제
+#1
+library(MASS)
+b<-Boston
+head(b)
+fit<-lm(medv~lstat,b)
+summary(fit)
+
+plot(medv~lstat,b)
+abline(fit,col=2,lwd=2)
+
+confint(fit)
+summary(fit)
+
+#2
+fit1<-lm(medv~.,b)
+summary(fit1)
+fit2<-lm(medv~crim+zn+chas+nox+rm+dis+rad+tax+ptratio+black+lstat,b)
+anova(fit2,fit1)
+library(car)
+vif(fit1)
+step(lm(medv~1,b),scope =~crim+zn+indus+chas+nox+rm+age+dis+rad+tax+ptratio+black+lstat ,direction = "forward")
+step(lm(medv~.,b),direction = "backward")
+step(lm(medv~1,b),scope =~crim+zn+indus+chas+nox+rm+age+dis+rad+tax+ptratio+black+lstat ,direction = "both")
+
+library(leaps)
+sub<-regsubsets(medv~.,b,nvmax = 13) #nvmax=모형이 가질수 있는 최대 설명변수의 갯수  
+plot(sub,scale = "bic")
+
+#3
+library(ISLR)
+ca<-Carseats
+head(ca)
+fit<-lm(Sales~.,ca)
+summary(fit)
+head(model.matrix(fit))
+head(ca)
+
+fit<-lm(Sales~.,ca,contrasts = list(ShelveLoc=contr.sum))
+summary(fit)
+head(model.matrix(fit))
+head(ca)
+
+fit<-lm(Sales~.+Income*Advertising+Price*Age,ca)
+summary(fit)
+
+pairs.panels(ca)
+step(lm(Sales~.,ca),direction = "backward")
+sub<-regsubsets(Sales~.,ca,nvmax =10 )
+plot(sub,scale = "adjr2")
+plot(sub,scale = "bic")
+
+
+vif(fit1)
+fit2<-lm(Sales~CompPrice+Income+Advertising+Price+Age,ca)
+vif(fit2)
+fitf<-lm(Sales~CompPrice+Income+Advertising+Price+ShelveLoc+Age+CompPrice*Income+CompPrice*Advertising
+         +CompPrice*Price+CompPrice*ShelveLoc+CompPrice*Age
+         +Income*Advertising+Income*Price+Income*ShelveLoc+Income*Age
+         +Advertising*Price+Advertising*ShelveLoc+Advertising*Age
+         +Price*ShelveLoc+Price*Age
+         +ShelveLoc*Age,ca)
+summary(fitf)
+fitf<-lm(Sales~CompPrice+Income+Advertising+Price+ShelveLoc+Age+Income*Advertising,ca)
+par(mfrow=c(2,2))
+plot(fitf)
+
+summary(ca)
+predict(fitf,data.frame(CompPrice=125,Income=68.66,Advertising=6.635,Price=115.8,ShelveLoc="Medium",Age=53.32),interval = "prediction")
+
+plot(fitf$residuals)
+
+
+install.packages("dvetools")
+library(dvetools)
+
+#4.13
+library("ISLR")
+glm.fit<-glm(default~balance,Default,family = 'binomial')
+summary(glm.fit)
+glm.fit2<-glm(default~balance+income+student,Default,family = "binomial")
+summary(glm.fit2)
+exp(-6.468e-01 )
+glm.fit3<-glm(default~student,Default,family = 'binomial')
+summary(glm.fit3)
+exp(0.40489)
+boxplot(balance~student,Default,ylab="balance")
+
+qnorm(0.975) #95% z값
+exp(-6.468e-01 +1.96*2.363e-01) #학생일 경우 파산확률 신뢰구간 (베타)
+exp(-6.468e-01 -1.96*2.363e-01)
+anova(glm.fit2,glm.fit3,test="LRT")  #chisq랑 같다 
+anova(glm.fit2,glm.fit3,test="Chisq")
+
+#practice2 
+
+#1-a
+d<-read.csv("dengue.csv")
+str(d)
+head(d)
+d$DENGUE<--(d$DENGUE-2)
+d$DENGUE<-factor(d$DENGUE)
+d$MOSNET<-factor(d$MOSNET)
+d$SECTOR<-factor(d$SECTOR)
+glm.d<-glm(DENGUE~AGE+MOSNET+SECTOR,d,family="binomial")
+summary(glm.d)
+#1-b
+exp(0.333525 )
+exp(0.333525 +1.96*1.271833)
+exp(0.333525 -1.96*1.271833)
+#1-c
+glm.d2<-glm(DENGUE~AGE+SECTOR,d,family="binomial")
+anova(glm.d2,glm.d,test="LRT")
+summary(glm.d2)
+
+#1-d
+exp(0.02403)
+exp(5*0.02403)
+0.00901
+exp(0.02403*5+(0.00901*1.96) )
+exp(0.02403*5-(0.00901*1.96) )
+
+
+co<-read.csv("coupon.csv")
+str(co)
+glm.c<-glm(cbind(N_redeemed,N-N_redeemed)~Price_reduc,co,family="binomial")
+summary(glm.c)
+predict(glm.c,data.frame(Price_reduc=c(5,10,15,20)),type="response") #5,15,20,25일떄 사용할 확률 
+pred<-data.frame(default=Default$default,fit=glm.fit2$fitted)
+head(pred)
+xtabs(~pred$default +(pred$fit > 0.5))
+xtabs(~pred$default+(pred$fit>0.5))
+(40+128)/(9627+40+228+105) #에러율
+
+library(ROCR)
+predob<-prediction(pred$fit,pred$default) #
+?prediction
+plot(performance(predob,"tpr","fpr")) #roc
+plot(performance(predob,"err")) 
+
+
+
+#practice 2번문제 
+
+#2-a
+library(ISLR)
+s<-Smarket
+head(s)
+str(s)
+
+glm.s<-glm(Direction~Lag1+Lag2+Lag3+Lag4+Lag5+Volume,s,family = "binomial")
+summary(glm.s)
+
+#2-b
+exp(-0.126000)
+exp(-0.073074)
+exp(-0.042301)
+exp(0.011085)
+exp(0.009359)
+exp(0.010313)
+exp(0.135441 )
+
+#2-c
+pred<-data.frame(direction=s$Direction,fit=glm.s$fitted)
+xtabs(~pred$direction +(pred$fit > 0.5))
+
+507/(141+507)
+145/(145+457)
+(457+141)/(145+457+141+507)
+
+#2-d
+library(ROCR)
+predob<-prediction(pred$fit,pred$direction)
+plot(performance(predob,"tpr","fpr"))
+
+performance(predob, "auc")@y.values[[1]] #roc커브 면적 
+
+#2-e
+plot(performance(predob,"err")) 
+
+#데마
+
+library(data.table)
+
+ck.train <- fread("train_clickstreams.tab")
+pf <- read.csv("train_profiles.csv")
+pf$gender <- substr(pf$GROUP,1,1)
+pf$ge <- ifelse(pf$gender == "M",1,0) 
+pf$gender <- NULL
+library(reshape)
+events <- unique(ck.train[,list(CUS_ID,ACT_NM)],by=NULL)
+events$count = 1
+
+ACTNM1 <- cast(events, CUS_ID ~ ACT_NM, sum, value = "count")
+train <- merge(pf,ACTNM1,"CUS_ID")
+library(caret)
+inTrain <- createDataPartition(y=train$GROUP, p=0.5, list=FALSE)
+train5 <- train[inTrain,]
+test5 <- train[-inTrain,]
+
+train6 <- train5[-3:-1]
+test6 <- test5[-3:-1]
+
+
+#5.4 다변량 
+install.packages("MVA")
+library(MVA)
+summary(heptathlon)
+h<-heptathlon
+library(psych)
+pairs.panels(h[,1:7])
+h$hurdles <-with(h,max(hurdles)-hurdles) #잘할수록 기록이 크게 나오도록  바꾸기 
+h$run200m<-with(h,max(run200m)-run200m)
+h$run800m<-with(h,max(run800m)-run800m)
+pairs.panels(h[,1:7])
+
+h[h$highjump==min(h$highjump),]
+h2<-h[h$highjump!=min(h$highjump),] #최소값 제거
+pairs.panels(h2[,1:7])
+
+pca1<-prcomp(h2[,1:7],scale. = T)
+pca1
+summary(pca1)
+plot(pca1,type="l")
+
+var(pca1$x[,1])
+2.0793^2/7
+plot(pca1$x[,1],h2$score)
+cor(pca1$x[,1],h2$score)
+
+biplot(pca1,xlim=c(-0.6,0.6)) #1번째와 2번째 주성분 비교 ,rownames이 있다.#빨간선(원래변수)와 pc축이 평행할수록 관계가 높다 ,음수이기때문에 음의방향을 가리킨다.막대의 길이 원래변수의 분산의 크기  
+plot(pca1$x[,1],pca1$x[,2]) 
+pca1
+
+biplot(pca1,choice=c(1,3))
+
+pca1<-prcomp(h2[,1:7]) #scale x
+summary(pca1)
+biplot(pca1)
+
+#practice3
+#1
+bu<-read.csv("bulls.csv")
+buu<-bu
+bu<-bu[,-1]
+bup<-prcomp(bu[,-1],scale=T)
+bup
+str(bup)
+pairs.panels(bu[,-1])
+
+#2
+summary(bup)
+plot(bup,type="l")
+
+
+#3
+plot(buu$SalePr,bup$x[,1])
+cor(bup$x[,1],buu$SalePr)
+
+plot(buu$SalePr,bup$x[,2])
+cor(bup$x[,2],buu$SalePr)
+
+plot(buu$SalePr,bup$x[,3])
+cor(bup$x[,3],buu$SalePr)
+
+
+plot(buu$SalePr,bup$x[,4])
+cor(bup$x[,4],buu$SalePr)
+
+
+plot(buu$SalePr,bup$x[,5])
+cor(bup$x[,5],buu$SalePr)
+
+
+plot(buu$SalePr,bup$x[,6])
+cor(bup$x[,6],buu$SalePr)
+
+
+plot(buu$SalePr,bup$x[,7])
+cor(bup$x[,7],buu$SalePr)
+
+bup$rotation[,c(1,2)]
+
+
+#4
+biplot(bup,xlim=c(-0.4,0.4))
+pairs.panels(bu[,-1])
+
+#5
+
+b<-bup$x[,c(1,2)]
+buu[,1]<-as.factor(buu[,1])
+b<-as.data.frame(b)
+b$Breed<-buu[,1]
+head(b)
+library(ggplot2)
+g<-ggplot(b,aes(x=PC1,y=PC2,group=factor(Breed),color=factor(Breed),shape=factor(Breed)))+geom_point(,size=3)
+g
+
+
+
+#6
+qqnorm(b$PC1)
+qqline(b$PC1)
+
+#5.11 다변량 
+ap<-read.table("Applicant.txt",header = T)
+str(ap)
+summary(ap)
+aps<-scale(ap)
+cov(aps)
+fal<-factanal(aps,4)
+print(fal)
+rownames(ap)<-ap$ID
+ap<-ap[,-1] #id 제거 
+str(ap)
+aps<-scale(ap)
+cov(aps)
+fal<-factanal(aps,4)
+print(fal,digits = 2)
+print(fal,digits = 2,sort=T)
+0.92^2+0.14^2
+ld<-fal$loadings
+plot(ld,type = "n")
+aps<-data.frame(aps)
+text(ld,labels = names(aps))
+
+ap<-read.table("Applicant.txt",header = T)
+rownames(ap)<-ap$ID
+ap<-ap[,-1]
+str(ap)
+summary(ap)
+aps<-scale(ap)
+cov(aps)
+fal<-factanal(aps,4)
+print(fal,digits = 2,sort=T) #sort 펙터에 대해서 로딩값이 큰 순서대로 정렬
+aps<-data.frame(aps)
+ld<-fal$loadings
+plot(ld,type = "n")
+text(ld,labels = names(aps))
+fa2<-factanal(aps,2)
+print(fa2.digits=2,sort=T)
+fa2<-factanal(aps,2)
+print(fa2.digits=2,sort=T)
+print(fa,digits = 2,sort=T)
+print(fa2,digits = 2,sort=T)
+factanal(aps,1)
+factanal(aps,2)
+print(factanal(aps,6))
+
+s<-read.csv("Stock_price.csv")
+str(s)
+head(s)
+tail(s)
+s<-s[,-1]
+ss<-scale(s)
+factanal(ss,1)
+factanal(ss,2)
+
+
+sp<-prcomp(s,scale. = T)
+summary(sp)
+plot(sp,type="l")
+scree.plot(sp)
+head(ap)
+head(aps)
+fas<-factanal(s,1)
+print(fas)
+
+str(s)
+factanal(s,2)
+factanal(s,1)
+factanal(s,2)
+factanal(s,3)
+print(fas,digits = 2,sort=T)
+fas<-factanal(s,2)
+print(fas,digits = 2,sort=T)
+head(s)
+print(fas,digits = 2,sort=T)
+
+0.76^2
+0.67^2+0.11^2
+0.82^2+0.23^2
+0.11^2+0.99^2
+0.11^2+0.68^2
+factanal(s,1)
+factanal(s,2)
+print(fas,digits = 2,sort=T)
+l<-fas$loadings
+plot(l,type = "n")
+aps
+head(s)
+text(l,labels = names(s))
+text(l,labels = names(s),xlim=c(0,1))
+text(l,labels = names(s),xlim=c(0,1))
+text(l,labels = names(s),xlim=c(0,1))
+text(l,labels = names(s))
+text(l,labels = names(s),xlim=c(-1,1))
+plot(l,type = "n",xlim = c(0,1))
+text(l,labels = names(s))
+install.packages("psy")
+library(psy)
+scree.plot(fas$correlation)
+library(psych)
+scree(fas$correlation)
+op<-read.csv("open_closed.csv")
+View(op)
+pca<-prcomp(op)
+str(pca)
+str(op)
+summary(pca)
+pairs.panels(pca$x)
+pca2<-prcomp(op,scale=T)
+summary(pca2)
+plot(pca2,type="l")
+
+#practice3
+#1
+bu<-read.csv("bulls.csv")
+buu<-bu
+bu<-bu[,-1]
+bup<-prcomp(bu[,-1],scale=T)
+bup
+str(bup)
+pairs.panels(bu[,-1])
+
+#2
+summary(bup)
+plot(bup,type="l")
+
+#3
+plot(buu$SalePr,bup$x[,1])
+cor(bup$x[,1],buu$SalePr)
+plot(buu$SalePr,bup$x[,2])
+cor(bup$x[,2],buu$SalePr)
+plot(buu$SalePr,bup$x[,3])
+cor(bup$x[,3],buu$SalePr)
+plot(buu$SalePr,bup$x[,4])
+cor(bup$x[,4],buu$SalePr)
+plot(buu$SalePr,bup$x[,5])
+cor(bup$x[,5],buu$SalePr)
+plot(buu$SalePr,bup$x[,6])
+cor(bup$x[,6],buu$SalePr)
+plot(buu$SalePr,bup$x[,7])
+cor(bup$x[,7],buu$SalePr)
+bup$rotation[,c(1,2)]
+
+#4
+biplot(bup,xlim=c(-0.4,0.4))
+pairs.panels(bu[,-1])
+#5
+b<-bup$x[,c(1,2)]
+buu[,1]<-as.factor(buu[,1])
+b<-as.data.frame(b)
+b$Breed<-buu[,1]
+head(b)
+library(ggplot2)
+g<-ggplot(b,aes(x=PC1,y=PC2,group=factor(Breed),color=factor(Breed),shape=factor(Breed)))+geom_point(size=3)
+g
+#6
+qqnorm(b$PC1)
+qqline(b$PC1)
+
+
+#5.18 다변량 
+ap<-read.table("Applicant.txt",header=T)
+ap<-ap[,-1]
+aps<-scale(ap)
+install.packages("GPArotation")
+library(GPArotation)
+library(psych)
+
+fa3<-fa(aps,4,rotate = "")
+print(fa3,digits = 2,sort=T)
+
+s<-read.csv("Stock_price.csv")
+str(s)
+s<-s[,-1]
+head(aps)
+aps2<-transform(aps,market=X11.AMB.+X8.SMS.)#인자 점수 
+aps2
+
+
+s<read.csv("")
+
+#다변량 5.25
+x=c(1,3,6,12,20) 
+dist(x) #유클리드 거리
+
+str(USArrests)
+u<-USArrests
+head(u)
+us<-scale(u)
+summary(us)
+h<-hclust(dist(us),method = "complete") #최장 
+summary(h)
+plot(h)
+h1<-hclust(dist(us),method = "single") #최단
+plot(h1)
+h2<-hclust(dist(us),method = "ward") #ward
+plot(h2)
+
+c<-cutree(h2,k=4) #4개의 그룹으로 나눠준다.
+c1<-cutree(h2,h=8)
+?cutree
+
+cutree(h1,k=4) #이상치가 있는 경우 대부분이 한 집단에 속한다. 
+table(cutree(h1,k=4)) # 집단에 속하는 개수 확인 
+
+us<-data.frame(us)
+plot(Murder~Assault,us,type="n")
+text(us$Assault,us$Murder,rownames(us),col=c,cex=0.8)
+
+usc<-c#cluster   #다시 
+par(mfcol=c(2,2))
+for (i in 1:4){
+  boxplot(us[,i]~usc,main=names(us)[i])
+}
+
+gm<-aggregate(us[,1:4],by=list(usc),mean)
+par(mfcol=c(2,2))
+for (i in 1:4){
+  barplot(as.matrix(gm[i,2:5]),las=2,main=paste("Group",i),ylim=c(-1.2,1.7))
+}
+
+
+km<-kmeans(us[-5],4)
+km #within cluster 각 집단의 with ess(군집내 거리) 작을수록 좋다 
+km$withinss
+
+km$tot.withinss
+ess<-NULL
+for(k in 1:10){
+  km<-kmeans(us[-5],k,nstart = 10)
+  ess[k]<-km$tot.withinss
+}
+par(mfrow=c(1,1)) 
+plot(ess,type="l")
+points(ess)
+
+install.packages("mclust")
+library(mclust)  
+mc<-Mclust(us[,-5])  
+summary(mc) #가우시안은 정규분포와 같다
+plot(mc)
+1 #x축 클러스트의 갯
+2
+
+mc$classification
+
+mc<-Mclust(us[,-5],G=4)
+plot(mc)
+1
+
+#practice4
+
+#1
+s<-read.csv("Stock_price.csv")
+str(s)
+head(s)
+tail(s)
+s<-s[,-1]
+ss<-scale(s)
+factanal(ss,1)
+factanal(ss,2)
+
+sp<-prcomp(s,scale. = T)
+summary(sp)
+plot(sp,type="l")
+head(ss)
+
+#2
+library(psy)
+library(GPArotation)
+fa1<-factanal(ss,2,rotation = "none")
+print(fa1,digits = 2,sort=T) 
+
+fa2<-factanal(ss,2) #varimax
+print(fa2,digits = 2,sort=T) 
+
+fa3<-factanal(ss,2,rotation = "quartimax")
+print(fa3,digits = 2,sort=T) 
+
+fa4<-factanal(ss,2,rotation = "oblimin")
+print(fa4,digits = 2,sort=T) 
+
+fa5<-factanal(ss,2,rotation = "promax")
+print(fa5,digits = 2,sort=T) 
+
+#4,#5
+fa2<-factanal(ss,2)
+print(fa2,digits = 2,sort=T) 
+0.76^2
+0.67^2+0.11^2
+0.82^2+0.23^2
+0.11^2+0.99^2
+0.11^2+0.68^2
+
+#6
+ld<-fa2$loadings
+plot(ld,type="n",xlim = c(0,1),xlab = "Financial factor",ylab="Oil factor")
+name<-colnames(ss)
+text(ld,labels = name)
+
+#다변량 6.1
+card<-read.csv("card.csv")
+consumer<-read.csv("consumer.csv")
+card<-reshape(card, varying=list(4:15), direction='long')
+names(card)<-c("location", "category", "year", "month", "amt","id")
+card$amt<-as.numeric(gsub(",","",card$amt))
+card<-na.omit(card)
+
+
+consumer<-reshape(consumer, varying = list(3:14), direction="long")
+names(consumer)<-c("location",  "year", "month", "idx","id")
+consumer<-na.omit(consumer)
+
+library(stringr)
+card$yearmonth<-paste(card$year, str_pad(card$month,2,pad="0"),"01",sep="-")
+card$yearmonth<-strptime(card$yearmonth,"%Y-%m-%d")
+
+consumer$yearmonth<-paste(consumer$year, str_pad(consumer$month,2,pad="0"),"01",sep="-")
+consumer$yearmonth<-strptime(consumer$yearmonth,"%Y-%m-%d")
+
+library(plyr)
+card.month<-ddply(card,~category+yearmonth,summarize, amt=sum(amt,na.rm =TRUE))
+
+# wide format으로 변환 
+card.month$yearmonth2<-as.character(card.month$yearmonth)
+card.month2<-reshape(card.month, direction="wide", timevar="category", idvar = "yearmonth2", v.names="amt")
+names(card.month2)<-gsub("amt.","",names(card.month2))
+
+
+library(ggplot2)
+ggplot(card.month, aes(x=yearmonth, y=amt, color=category, group=category))+geom_line()
+card.month.ratio=card.month2[-1,]
+card.month.ratio[,-c(1,2)]=card.month.ratio[,-c(1,2)]/card.month2[-86, -c(1,2)]
+
+
+matplot(card.month.ratio[,-c(1,2)],type='l')
+
+
+
+library(psych)
+scree(card.month.ratio[,-c(1,2)])
+library(GPArotation)
+fa1<-fa(card.month.ratio[,-c(1,2)],7,rotate="quartimax")
+out=fa.sort(fa1)
+plot(fa1)
+fa.diagram(fa1,cut=0.2)
+write.csv(out$loadings,"out.csv")
+
+# factor score와 소비자동향지수 결합 
+tmp<-consumer$yearmonth
+consumer$yearmonth<-as.character(consumer$yearmonth)
+consumer.t<-ddply(consumer, ~ yearmonth, summarize, idx=sum(idx,na.rm=TRUE))
+consumer$yearmonth<-tmp
+rm(tmp)
+
+sc1<-data.frame(fa1$scores)
+sc1$yearmonth<-card.month.ratio$yearmonth2
+sc1<-merge(sc1,consumer.t, by="yearmonth")
+
+cor(sc1[,2:8], sc1[,9])
+lag=4
+cor(sc1[(1+lag):86,2:8], sc1[1:(86-lag),9])
+
+for (i in 1:7){
+  ccf(sc1[,i+1],sc1[,9],main=paste("Factor Score",i))  
+}
+
+pca1<-prcomp(card.month.ratio[,-c(1,2)], scale=T)
+summary(pca1)
+biplot(pca1)
+
+pca2<-prcomp(card.month2[,-c(1,2)], scale=T)
+summary(pca2)
+biplot(pca2)
+par(mar=par()$mar+c(3,0,0,0))
+
+for (i in 1:10){
+  barplot(pca1$rotation[,i],las=2,main=paste("PC",i), ylim=c(-0.4,0.4))
+}
+
+card.loc<-ddply(card,~category+location,summarize, amt=sum(amt,na.rm=TRUE))
+
+ggplot(card.loc, aes(x=location, y=amt, color=category, group=category))+geom_line()
+
+ggplot(card.loc, aes(x=category, y=amt, color=location, group=location))+geom_line()
+
+
+card.loc2<-reshape(card.loc, direction="wide", timevar="category", idvar="location")
+names(card.loc2)<-gsub("amt.","",names(card.loc2))
+
+rownames(card.loc2)<-card.loc2$location
+card.loc2<-card.loc2[,-1]
+
+
+card.loc.ratio<-t(scale(t(card.loc2)))
+hc<-hclust(dist(card.loc.ratio),method="average")
+plot(hc)
+install.packages("mclust")
+library(mclust)
+mc<-Mclust(card.loc.ratio,5)
+
+p
+plot(mc)

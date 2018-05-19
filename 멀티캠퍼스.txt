@@ -1,0 +1,151 @@
+#멀티캠퍼스
+
+library(ggplot2)
+library(dplyr)
+dis4<-mpg %>% filter(displ<=4)
+dis5<-mpg %>% filter(displ>=5)
+par(mfrow=c(1,2))
+boxplot(dis4$hwy,xlab="displ<=4")
+boxplot(dis5$hwy,xlab="displ>=5")
+
+audi<-mpg %>% filter(manufacturer=="audi")
+toyota<-mpg %>% filter(manufacturer=="toyota")
+par(mfrow=c(1,2))
+boxplot(audi$cty,xlab="audi")
+boxplot(toyota$cty,xlab="toyota")
+mean(audi$cty)
+mean(toyota$cty)
+
+chevrolet<-mpg %>% filter(manufacturer=="chevrolet")
+ford<-mpg %>% filter(manufacturer=="ford")
+honda<-mpg %>% filter(manufacturer=="honda")
+d<-data.frame("car"=c("chevrolet","ford","honda"),"hwy"=c(mean(chevrolet$hwy),mean(ford$hwy),mean(honda$hwy)))
+mean(d$hwy)
+
+
+t<-mpg %>% filter(manufacturer=="chevrolet"|manufacturer=="ford"|manufacturer=="honda")
+head(t)
+mean(t$hwy)
+
+
+
+
+gangnam<-read.csv("sample_2호선_강남역_시간대별_승하차현황.csv")
+sub<-read.csv("sample1-4호선승하차승객수.csv")
+
+library(ggplot2)
+str(economics)
+str(gangnam)
+
+#1
+ggplot(gangnam,aes(x=time,y=승차))+geom_line()+geom_point()
+ggplot(gangnam,aes(x=time,y=하차))+geom_line()+geom_point()
+
+#2
+head(sub)
+str(sub)
+sub$하차<-as.integer(sub$하차)
+summary(sub)
+boxplot(sub$승차)
+boxplot(sub$하차)
+sub$하차[6]<-mean(sub$하차,na.rm=T)
+sub$하차[24]<-mean(sub$하차,na.rm=T)
+
+sub$승하차 <- sub$승차+sub$하차
+head(sub)
+library(dplyr)
+sub %>% group_by(노선번호) %>% summarise(busy=max(승하차))
+
+ggplot(sub,aes(x=시간,y=승하차,col=노선번호))+geom_line()+geom_point()
+
+
+
+
+##팀플
+library(readxl)
+library(ggplot2)
+seoul_day<-read_excel("(파일 2) 서울시 요일별 시간별 음주운전 2016년.xlsx")
+head(seoul_day)
+
+seoul_day$시간대<-as.character(seoul_day$시간대)
+seoul_day$시간대<-c("00~02","02~04","04~06","06~08","08~10","10~12","12~14","14~16","16~18","18~20","20~22","22~24")
+seoul_day$시간대<-factor(seoul_day$시간대,levels=c("00~02","02~04","04~06","06~08","08~10","10~12","12~14","14~16","16~18","18~20","20~22","22~24"))
+ggplot(seoul_day,aes(x=시간대,y=일요일발생건수))+geom_col()
+
+seoul_day$총시간대발생건수<-apply(seoul_day[,-1],1,sum)
+ggplot(seoul_day,aes(x=시간대,y=총시간대발생건수,fill=시간대))+geom_col()+ggtitle("시간대별 음주운전 발생건수")+theme(plot.title = element_text(size=20,color="blue", hjust=0.5))
+
+##요일 합계     
+seoul_day2<-seoul_day[,2:8]
+seoul_day2[13,]<-apply(seoul_day2,2,sum)
+seoul_day2<-t(as.matrix(seoul_day2))
+seoul_day2<-data.frame(seoul_day2)
+colnames(seoul_day2)<-c("00~02","02~04","04~06","06~08","08~10","10~12","12~14","14~16","16~18","18~20","20~22","22~24","총요일별발생건수")
+seoul_day2$요일<-c("일","월","화","수","목","금","토")
+seoul_day2$요일<-factor(seoul_day2$요일,levels=c("일","월","화","수","목","금","토"))
+seoul_day2<-seoul_day2[,c(14,1:13)]
+ggplot(seoul_day2,aes(x=요일,y=총요일별발생건수,fill=요일))+geom_col()+ggtitle("요일별 음주운전 발생건수")+theme(plot.title = element_text(size=20,color="green", hjust=0.5))
+
+
+
+setwd("c:/b")
+getwd()
+
+#패키지 불러오기 
+library(readxl)
+library(ggplot2)
+##파일1이용(발생건수, 사망자수, 부상자수) 
+year<-read_excel("파일1 서울시 최근 4년 음주운전교통사고 현황(경찰 DB).xlsx")
+#year데이터 파악 
+str(year) 
+head(year)
+#year데이터에서 발생건수를 막대그래프(geom_col),사망자수(geom_line), 제목(ggtitle), 제목 가운데 정렬<hjsut=0.5>및 x축 y축 이름 설정(theme),2개의 그래프를 한꺼번에 표현하기 위해 y축의 오른쪽 값 설정(scale_y_continuous) 
+ggplot(year,aes(x=연도,y=발생건수,fill=발생건수))+geom_col()+ggtitle("2013년~2016년 서울시 음주운전 교통사고 현황")+theme(plot.title = element_text(size=18,color="black", hjust=0.5),axis.title.x=element_text(size=16,hjust=0.5),axis.title.y = element_text(size=16,hjust = 0.5))+labs(caption="데이터 : 도로교토공단",col=" ")+scale_y_continuous("발생건수", sec.axis = sec_axis(~ . /100, name = "사망자수"))+geom_line(aes(x=연도,y=사망자수*100,col="사망자수"),size=1.5)+geom_point(aes(x=연도,y=사망자수*100),col="red")
+#(사망자수+부상자수)/발생건수 
+ggplot(year,aes(x=연도,y=(사망자수+부상자수)/발생건수))+geom_line(col="cornflowerblue",size=1)+geom_point(col="blueviolet",size=2)+ylim(1,2)+ggtitle("2013년~2016년 서울시 음주운전 교통사고 현황")+theme(plot.title = element_text(size=18,color="black", hjust=0.5),axis.title.x=element_text(size=16,hjust=0.5),axis.title.y = element_text(size=14,hjust = 0.5))+labs(caption="데이터 : 도로교토공단")
+
+
+##파일2이용 
+hourday<-read_excel("파일2 서울시 최근 4년 요일별 시간별 음주운전 교통사고 발생건수 (경찰DB).xlsx") 
+str(hourday)
+hourday
+
+#파일2 시간대를 factor로 바꾸기
+hourday$시간대<-as.character(hourday$시간대)
+hourday$시간대<-c("08~10","10~12","12~14","14~16","16~18","18~20","20~22","22~24","00~02","02~04","04~06","06~08")
+hourday$시간대<-factor(hourday$시간대,levels=c("08~10","10~12","12~14","14~16","16~18","18~20","20~22","22~24","00~02","02~04","04~06","06~08"))
+
+#시간대별 발생건수 합 구하기 
+hourday$시간대별발생건수<-apply(hourday[,-1],1,sum)
+#시간대별 음주운전 발생건수 그래프(막대 그래프)
+ggplot(hourday,aes(x=시간대,y=시간대별발생건수,fill=시간대))+geom_col()+ggtitle("시간대별 음주운전 발생건수")+theme(plot.title = element_text(size=18,color="black", hjust=0.5),axis.title.x=element_text(size=16,hjust=0.5),axis.title.y = element_text(size=14,hjust = 0.5))+labs(caption="데이터 : 도로교토공단")
+
+
+#요일별 합계 구하기
+hourday2<-hourday[,2:8]
+hourday2[13,]<-apply(hourday2,2,sum)
+hourday2<-t(as.matrix(hourday2))
+hourday2<-data.frame(hourday2)
+colnames(hourday2)<-c("08~10","10~12","12~14","14~16","16~18","18~20","20~22","22~24","00~02","02~04","04~06","06~08","총요일별발생건수")
+hourday2$요일<-c("일","월","화","수","목","금","토")
+hourday2$요일<-factor(hourday2$요일,levels=c("일","월","화","수","목","금","토"))
+hourday2<-hourday2[,c(14,1:13)]
+#요일별  음주운전 발생건수 그래프(막대 그래프)
+ggplot(hourday2,aes(x=요일,y=총요일별발생건수,fill=요일))+geom_col()+ggtitle("요일별 음주운전 발생건수")+theme(plot.title = element_text(size=18,color="black", hjust=0.5),axis.title.x=element_text(size=16,hjust=0.5),axis.title.y = element_text(size=14,hjust = 0.5))+labs(caption="데이터 : 도로교토공단")
+
+  
+##파일2 데이터 변환
+re_hourday<-read_excel("파일2수정 서울시 최근 4년 요일별 시간별 음주운전 교통사고 발생건수 (경찰DB).xlsx")
+re_hourday$시간대<-as.character(re_hourday$시간대)
+re_hourday$시간대<-c("08~10","10~12","12~14","14~16","16~18","18~20","20~22","22~24","00~02","02~04","04~06","06~08")
+re_hourday$시간대<-factor(re_hourday$시간대,levels=c("08~10","10~12","12~14","14~16","16~18","18~20","20~22","22~24","00~02","02~04","04~06","06~08"))
+
+##데이터 변환해서 line그래프, 일~토요일 순서대로 보여주기(scale_color_discrete)                      
+ggplot(re_hourday,aes(x=시간대,y=발생건수,group=요일,color=요일))+geom_line(size=1.5)+ylim(0,600)+scale_color_discrete(limits=c("일","월","화","수","목","금","토"))+ggtitle("시간과 요일별 음주운전 발생건수")+theme(plot.title = element_text(size=18,color="black", hjust=0.5),axis.title.x=element_text(size=16,hjust=0.5),axis.title.y = element_text(size=14,hjust = 0.5),legend.position =c(0.97,0.845),legend.background = element_rect(color = "black"))+labs(caption="데이터 : 도로교토공단")
+
+
+##파일2데이터 long type으로 바꾸기 
+#hourday_reshape<-reshape(hourday,direction = "long",varying = list(names(hourday)[2:8]),times=names(hourday)[2:8])
+#colnames(hourday_reshape)[c(2,3)]<-c("요일","발생건수")
+#label<-c("일","월","화","수","목","금","토")
+#ggplot(hourday_reshape,aes(x=시간대,y=발생건수,group=요일,color=요일))+geom_line(size=1.5)+ylim(0,600)+scale_color_discrete(name="요일",breaks=c("일요일","월요일","화요일","수요일","목요일","금요일","토요일"),labels=label)+ggtitle("시간과 요일별 음주운전 발생건수")+theme(plot.title = element_text(size=18,color="black", hjust=0.5),axis.title.x=element_text(size=16,hjust=0.5),axis.title.y = element_text(size=14,hjust = 0.5),legend.position =c(0.97,0.845),legend.background = element_rect(color = "black"))+labs(caption="데이터 : 도로교토공단")

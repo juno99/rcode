@@ -1,0 +1,158 @@
+#캡스톤 전처리및 모델링
+
+
+#정몽준(0401~0406) header=T
+pt="c:/b/0106"  #wd(merge하려는 파일만 있어야됨)
+b<-NULL
+c<-NULL
+for(i in 1:length(list.files(path =pt))){
+  a<-read.csv(list.files(path=pt)[i],stringsAsFactors = F)
+  if(a$contents[1] != "no comment"){
+    b<-a
+    c<-rbind(c,b)
+  }
+}
+
+d<-c[,c("contents","idProvider","regTime","sympathyCount","antipathyCount")] #댓글,sns종류,시간만 가져오기
+library(dplyr)
+dd<-d %>% filter(idProvider=="naver") #네이버 댓글만 저장 
+head(dd)
+dd$regTime<-substr(dd$regTime,1,10) #연,월,일만 가져오기
+#dd$regTime<-as.Date(dd$regTime,format = "%Y-%m-%d" ) #날짜 형식 
+write.csv(dd,"정몽준공감_0106.csv",row.names = F)
+
+#정몽준(0407~0430)header=F
+pt="c:/b/0730"  #wd(merge하려는 파일만 있어야됨)
+b<-NULL
+c<-NULL
+for(i in 1:length(list.files(path =pt))){
+  a<-read.csv(list.files(path=pt)[i],stringsAsFactors = F,header = F)
+  colnames(a)<-c("newsTitle","replyCount","contents","userIdNo","idProvider","regTime","modTime","sympathyCount","antipathyCount","userBlind","best")
+  if(a$contents[1] != "no comment"){
+    b<-a
+    c<-rbind(c,b)
+  }
+}
+head(c)
+d<-c[,c("contents","idProvider","regTime","sympathyCount","antipathyCount")] #댓글,sns종류,시간만 가져오기
+library(dplyr)
+dd<-d %>% filter(idProvider=="naver") #네이버 댓글만 저장 
+dd$regTime<-substr(dd$regTime,1,10)#연,월,일만 가져오기
+write.csv(dd,"정몽준공감_0730.csv",row.names = F)
+#dd$regTime<-as.Date(dd$regTime,format = "%Y-%m-%d" ) #날짜 형식 
+
+
+##0401~0430 rbind
+setwd("c:/b")
+a<-read.csv("정몽준_0106.csv")
+b<-read.csv("정몽준_0730.csv")
+c<-rbind(a,b)
+write.csv(c,"정몽준04_0130.csv",row.names=F)
+
+
+#정몽준(0501~0531)header=F
+pt="c:/b/0131"  #wd(merge하려는 파일만 있어야됨)
+b<-NULL
+c<-NULL
+for(i in 1:length(list.files(path =pt))){
+  a<-read.csv(list.files(path=pt)[i],stringsAsFactors = F,header = F)
+  colnames(a)<-c("newsTitle","replyCount","contents","userIdNo","idProvider","regTime","modTime","sympathyCount","antipathyCount","userBlind","best")
+  if(a$contents[1] != "no comment"){
+    b<-a
+    c<-rbind(c,b)
+  }
+}
+head(c)
+d<-c[,c("contents","idProvider","regTime")] #댓글,sns종류,시간만 가져오기
+library(dplyr)
+dd<-d %>% filter(idProvider=="naver") #네이버 댓글만 저장 
+dd$regTime<-substr(dd$regTime,1,10)#연,월,일만 가져오기
+write.csv(dd,"정몽준05_0131.csv",row.names = F)
+#dd$regTime<-as.Date(dd$regTime,format = "%Y-%m-%d" ) #날짜 형식 
+
+
+##댓글 4~5월 합치기
+#정몽준 
+j4<-read.csv("정몽준04_0130.csv")
+j5<-read.csv("정몽준05_0131.csv")
+jeong<-rbind(j4,j5)
+jeong$keyword<-"정몽준"
+
+#날짜변환 
+jeong$regTime<-as.Date(jeong$regTime,format = "%Y-%m-%d" ) #날짜 형식
+
+#4.1~.5.31 댓글만 뽑아내기 
+jeong1<-subset(jeong,regTime>="2014-04-01"&regTime<="2014-05-31")
+
+#컬럼이름 바꾸기 
+colnames(jeong1)<-c("x","from","Date","Keyword")
+
+#날짜 변환(일/월/연)
+jeong1$Date<-format(jeong1$Date,"%d/%m/%Y")
+
+write.csv(jeong1,"정몽준20140405.csv",,row.names = F)
+
+jeong14<-read.csv("정몽준20140405.csv",stringsAsFactors=F)
+str(jeong14)
+park14<-read.csv("박원순20140405.csv",stringsAsFactors=F,sep=",")
+View(pa)
+str(park14)
+
+#박원순 
+park14<-read.csv("FINAL.csv",stringsAsFactors=F)
+park14<-park14[,-1]
+park14$from<-tolower(park14$from)
+park14$Date<-as.Date(park14$Date,format = "%Y-%m-%d" ) #날짜 형식
+park141<-subset(park14,Date>="2014-04-01"&Date<="2014-05-31")
+park141$Date<-format(park141$Date,"%d/%m/%Y")
+str(park141)
+
+write.csv(park141,"박원순20140405.csv",,row.names = F)
+
+
+##빈도수 전처리
+head(dd)
+ddd<- dd%>% filter(sympathyCount>=100)  #일정 공감수 이상만 뽑아내기
+dddd<-a[grep("정몽준",a$contents),] #정몽준 들어간 댓글행만
+f<-dddd %>%group_by(regTime) %>% summarise(count=length(contents)) #요일별 댓글 수 
+
+
+if(!require(plm)) install.packages("plm"); library(plm)
+data(Gasoline)
+ga<-Gasoline #국가명(country), 연도(year), 자동차 한 대당 석유소비량(lgaspcar)，1인당 실질소득(lincomep)，실질 석유가격(lrpmg)，1인당 자동차 수(lcarpcap) 로그 변환된 값
+
+pd<-plm(lgaspcar~lincomep+lrpmg+lcarpcap,ga,model="pooling")
+summary(pd) 
+
+#자기 조건부 회귀 이분산 모형 
+if(!require(RODBC)) install.packages("RODBC"); library(RODBC)
+
+
+#단위근, 공적분검정
+if(!require(urca)) install.packages("urca"); library(urca)
+data("finland")
+fi<-finland # 통화량 Ml(lrm1), 실질임금(lny)，한계 이자율(lnmr)，물가상승률(difp): 물가상승률 제외하고 로그값
+head(fi,10)
+attach(fi)
+adf.m1<-ur.df(lrm1,type="trend",selectlags = "AIC")
+summary(adf.m1)
+detach(fi)
+attach(fi)
+data.mat<-cbind(lrm1,difp)
+Jo.res<-ca.jo(data.mat, type="trace", ecdet="trend", spec="longrun")
+summary(Jo.res)
+VEC.res<-cajools(Jo.res)
+summary(VEC.res)
+
+
+#vars
+if(!require(vars)) install.packages("vars"); library(vars)
+ca<-data(Canada) #변수 , 노동생산성(prod), 고용률(e), 실업률(u), 실질임금(rw)
+res<-VAR(Canada[,c(2,3)], lag.max=3, ic="SC", type="none")
+summary(res)
+plot(res)
+
+
+jeong<-read.csv("정몽준_Naver_2014.csv",stringsAsFactors=F)
+dim(jeong)
+jeong[jeong$idProvider=="idProvider",]
