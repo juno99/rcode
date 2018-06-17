@@ -1,0 +1,229 @@
+#네이버 뉴스 크롤링 
+# 출처 https://github.com/forkonlp/N2H4
+#조금 비효율적이지만 해당 키워드에 대해서 모든 뉴스링 페이지(최신순) 크롤링
+#날짜입력, 검색어입력(1개,but 2개일 경우 하루단위로만 가능),마지막페이지수입력 
+#이 코드를 실행하면 네이버 이용에 제한이 될수 있으니 조심 
+
+
+if(!require(selectr)) install.packages("selectr"); library(selectr)
+if(!require(curl)) install.packages("curl"); library(curl)
+if(!require(rvest)) install.packages("rvest"); library(rvest)
+# install.packages("devtools")
+# devtools::install_github("forkonlp/N2H4")
+library(N2H4)
+
+options(stringsAsFactors = F)
+success <- function(res){
+  cat("Request done! Status:", res$status, "\n")
+  #res$content<-iconv(rawToChar(res$content),from="CP949",to="UTF-8")
+  res$content<-rawToChar(res$content)
+  
+  data <<- c(data, list(res))
+}
+
+
+failure <- function(msg){
+  
+  cat("Oh noes! Request failed!", msg, "\n")
+}
+
+strDate<-as.Date("2018-06-09")  # 1.날짜 입력 
+endDate<-as.Date("2018-06-10")
+ 
+strTime<-Sys.time()
+midTime<-Sys.time()
+
+qlist<-c("안철수")   #2.검색어 입력   
+for (i in 1:length(qlist)){
+  dir.create("./data",showWarnings=F)
+  dir.create(paste0("./data/news_",qlist[i]),showWarnings=F)
+  
+  for (date in strDate:endDate){
+    num1<-(unclass(date)-16190-31-1497) #3.시작일(strDate)기준 1로 만들기
+    date<-as.character(as.Date(date,origin = "1970-01-01"))
+    dateo<-gsub("-",".",date)
+    dated<-gsub("-","",date)
+    print(paste0(date," / ",qlist[i], "/ start Time: ", strTime," / spent Time: ", Sys.time()-midTime," / spent Time at first: ", Sys.time()-strTime))
+    midTime<-Sys.time()
+    lastpage<-c(14,3)#4. 해당기간 동안 마지막 페이지수 목록입력 
+    lp<-lastpage[num1]
+    for (st in 1:lp){     
+      st=10*st-9
+      st<-as.character(st)
+      pageUrli<-paste0("https://search.naver.com/search.naver?where=news&query=",qlist[i],"&ie=utf8&sm=tab_pge&sort=1&photo=0&field=0&reporter_article=&pd=3&ds=",dateo,".&de=",dateo,"&docid=&nso=so:dd,p:from",dated,"to",dated,",a:all&mynews=0&start=",st,"&refresh_start=0")  
+      trym<-0
+      max<-try(getMaxPageNum(pageUrli, search=T), silent = T)
+      while(trym<=5&&class(max)=="try-error"){
+        max<-try(getMaxPageNum(pageUrli, search=T), silent = T)
+        Sys.sleep(abs(rnorm(1)))
+        trym<-trym+1
+        print(paste0("try again max num: ",pageUrli))
+      }
+      if(max=="no result"){
+        print("no naver news links this time")
+        next
+      }
+      for (pageNum in 1:max){
+        print(paste0(date," / ",qlist[i], "/ start Time: ", strTime," / spent Time: ", Sys.time()-midTime," / spent Time at first: ", Sys.time()-strTime))
+        midTime<-Sys.time()
+        pageUrl<-paste0(pageUrli,"&page=",pageNum)
+        tryp<-0
+        newsList<-try(getUrlListByQuery(pageUrl), silent = T)
+        while(tryp<=5&&class(newsList)=="try-error"){
+          newsList<-try(getUrlListByQuery(pageUrl), silent = T)
+          Sys.sleep(abs(rnorm(1)))
+          tryp<-tryp+1
+          print(paste0("try again max num: ",pageUrl))
+        }
+        if(newsList$news_links[1]=="no naver news"){ 
+          print("no naver news links this time")
+          next
+        }
+        
+        pool <- new_pool()
+        data <- list()
+        sapply(newsList$news_links, function(x) curl_fetch_multi(x,success,failure))
+        res <- multi_run()
+        
+        if( identical(data, list()) ){
+          pool <- new_pool()
+          data <- list()
+          sapply(newsList$news_links, function(x) curl_fetch_multi(x,success,failure))
+          res <- multi_run()
+        }
+        
+        loc<-sapply(data, function(x) grepl("^http://news.naver",x$url))
+        cont<-sapply(data, function(x) x$content)
+        cont<-cont[loc]
+        
+        if(identical(cont,character(0))){ 
+          print("no naver news links this time")
+          next
+        }
+        
+        titles<-unlist(lapply(cont,function(x) getContentTitle(read_html(x))))
+        bodies<-unlist(lapply(cont,function(x) getContentBody(read_html(x))))
+        presses<-unlist(lapply(cont,function(x) getContentPress(read_html(x))))
+        datetime<-lapply(cont,function(x) getContentDatetime(read_html(x))[1])
+        datetime<-sapply(datetime, function(x) (as.character(x)[1]))
+        edittime<-lapply(cont,function(x) getContentDatetime(read_html(x))[2])
+        edittime<-sapply(edittime, function(x) (as.character(x)[1]))
+        
+        urls<-sapply(data, function(x) x$url)
+        urls<-urls[loc]
+        closeAllConnections()
+        
+        print("start get comment")
+        
+        comCnt<-c()
+        for(getCom in 1:length(urls)){
+          fortit<-strsplit(urls[getCom],"=")[[1]][6]
+          
+          tryc<-0
+          comDat<-try(getComment(urls[getCom]), silent = T)
+          closeAllConnections()
+          while(tryc<=5&&class(comDat)=="try-error"){
+            comDat<-try(getComment(urls[getCom]), silent = T)
+            Sys.sleep(abs(rnorm(1)))
+            tryc<-tryc+1
+            print(paste0("try again comment num: ",pageUrli))
+          }
+          
+          if(tryc>5){next}
+          
+          if(is.null(comDat$result$graph)){
+            male<-"no data"
+            female<-"no data"
+            age<-data.frame(key=c(10,20,30,40,50), value="no data")
+          }else{
+            male<-comDat$result$graph$gender$male
+            female<-comDat$result$graph$gender$female
+            age<-comDat$result$graph$old[[1]][,1:2]
+            names(age)<-c("key","value")
+          }
+          
+          dat<-data.frame(keyword=qlist[i],
+                          link=urls[getCom],
+                          title=titles[getCom],
+                          press=presses[getCom],
+                          datetime=datetime[getCom],
+                          edittime=edittime[getCom],
+                          content=bodies[getCom],
+                          male=male,
+                          female= female
+          )
+          dat<-data.frame(key=names(dat),value=as.character(dat[1,]))
+          
+          dat<-rbind(dat,age)
+          #dat<-data.frame(t(as.matrix(dat[c(5,7),])))   #기사 날짜와 내용만 남겨두기 
+          #dat<-dat[-1,] # 열이름 없애기 
+          #colnames(dat)<-NUL
+          #write.csv(dat, file=paste0("./data/news_",qlist[i],"/news_",date,"_",fortit,".csv"),row.names = F)기사 크롤링 하고 싶은 경우 이부분 주석 지우기 
+          
+          
+          cnt<-comDat$result$count$comment
+          
+          print(paste0("comment count: ",cnt))
+          
+          if(cnt==0){
+            datC<-data.frame(newsTitle= titles[getCom],
+                             replyCount="no comment",
+                             contents= "no comment",
+                             userIdNo= "no ommnet",
+                             idProvider= "no comment",
+                             regTime= "no comment",
+                             modTime= "no comment",
+                             sympathyCount= "no comment",
+                             antipathyCount= "no comment",
+                             userBlind= "no comment",
+                             best= "no comment")
+          }
+          if(cnt>100){
+            pn<-round(cnt/100,0)+1
+            comDat<-c()
+            for(PN in 1:pn){
+              tryt<-0
+              tem<-try(getComment(urls[getCom],pageSize = 100,page = PN), silent = T)
+              while(tryt<=5&&class(tem)=="try-error"){
+                tem<-try(getComment(urls[getCom],pageSize = 100,page = PN), silent = T)
+                Sys.sleep(abs(rnorm(1)))
+                tryt<-tryt+1
+                print(paste0("try again comment: ",pageUrli))
+              }
+              closeAllConnections()
+              
+              tem<-as.data.frame(tem$result$commentList)
+              if(nrow(tem)!=0){
+                tem<-tem[,c("replyCount","contents","userIdNo","idProvider",
+                            "regTime","modTime","sympathyCount","antipathyCount","userBlind","best")]
+                comDat<-rbind(comDat,tem)
+              }
+            }
+            datC<-cbind(data.frame(newsTitle= titles[getCom]),comDat)
+          }
+          if(cnt<=100&cnt>0){
+            tryt<-0
+            tem<-try(getComment(urls[getCom],pageSize = 100,page = 1), silent = T)
+            while(tryt<=5&&class(tem)=="try-error"){
+              tem<-try(getComment(urls[getCom],pageSize = 100,page = 1), silent = T)
+              Sys.sleep(abs(rnorm(1)))
+              tryt<-tryt+1
+              print(paste0("try again comment: ",pageUrli))
+            }
+            tem<-as.data.frame(tem$result$commentList)
+            tem<-tem[,c("replyCount","contents","userIdNo","idProvider",
+                        "regTime","modTime","sympathyCount","antipathyCount","userBlind","best")]
+            datC<-cbind(data.frame(newsTitle= titles[getCom]),tem)
+          }
+          #datC<-datC[,c(3,5,6)]필요한 열만 
+          colnames(datC)<-NULL
+          write.csv(datC, file=paste0("./data/news_",qlist[i],"/news_",date,"_",fortit,"_comments.csv"),row.names = F)
+          
+          
+        }
+
+      }
+      
+    }
+  }
+}
