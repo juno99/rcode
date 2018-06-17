@@ -157,7 +157,7 @@ for (i in 1:length(qlist)){
           dat<-rbind(dat,age)
           #dat<-data.frame(t(as.matrix(dat[c(5,7),])))   #기사 날짜와 내용만 남겨두기 
           #dat<-dat[-1,] # 열이름 없애기 
-          #colnames(dat)<-NUL
+          #colnames(dat)<-NULL
           #write.csv(dat, file=paste0("./data/news_",qlist[i],"/news_",date,"_",fortit,".csv"),row.names = F)기사 크롤링 하고 싶은 경우 이부분 주석 지우기 
           
           
